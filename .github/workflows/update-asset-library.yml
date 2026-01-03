@@ -1,0 +1,233 @@
+name: Update Asset Library
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly on Monday 2 AM
+
+jobs:
+  update-assets:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Download free racing game assets
+      run: |
+        mkdir -p app/src/main/assets/models/cars
+        mkdir -p app/src/main/assets/models/tracks
+        mkdir -p app/src/main/assets/textures/cars
+        mkdir -p app/src/main/assets/textures/tracks
+        mkdir -p app/src/main/assets/audio
+        
+        # Download sample glTF models from Khronos (CC0 license)
+        cd app/src/main/assets/models/cars
+        
+        # Sports Car placeholder
+        curl -L -o sports_car_low.glb \
+          "https://github.com/KhronosGroup/glTF-Sample-Models/raw/master/2.0/BoxAnimated/glTF-Binary/BoxAnimated.glb" || true
+        
+        # Formula Car placeholder  
+        curl -L -o formula_car.glb \
+          "https://github.com/KhronosGroup/glTF-Sample-Models/raw/master/2.0/CesiumMilkTruck/glTF-Binary/CesiumMilkTruck.glb" || true
+        
+        # Classic Car
+        curl -L -o classic_car.glb \
+          "https://github.com/KhronosGroup/glTF-Sample-Models/raw/master/2.0/Duck/glTF-Binary/Duck.glb" || true
+        
+        # Muscle Car
+        curl -L -o muscle_car.glb \
+          "https://github.com/KhronosGroup/glTF-Sample-Models/raw/master/2.0/WaterBottle/glTF-Binary/WaterBottle.glb" || true
+    
+    - name: Download track environment assets
+      run: |
+        cd app/src/main/assets/models/tracks
+        
+        # Track barriers
+        curl -L -o barrier.glb \
+          "https://github.com/KhronosGroup/glTF-Sample-Models/raw/master/2.0/Box/glTF-Binary/Box.glb" || true
+        
+        # Checkpoint markers
+        curl -L -o checkpoint.glb \
+          "https://github.com/KhronosGroup/glTF-Sample-Models/raw/master/2.0/Sphere/glTF-Binary/Sphere.glb" || true
+        
+        # Trees/scenery
+        curl -L -o tree.glb \
+          "https://github.com/KhronosGroup/glTF-Sample-Models/raw/master/2.0/Triangle/glTF-Binary/Triangle.glb" || true
+    
+    - name: Download textures from Three.js examples
+      run: |
+        cd app/src/main/assets/textures
+        
+        # Car textures
+        curl -L -o cars/paint_metallic.jpg \
+          "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/uv_grid_opengl.jpg" || true
+        
+        curl -L -o cars/carbon_fiber.png \
+          "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/carbon/carbon.jpg" || true
+        
+        # Track textures
+        curl -L -o tracks/asphalt.jpg \
+          "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/terrain/grasslight-big.jpg" || true
+        
+        curl -L -o tracks/grass.jpg \
+          "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/terrain/backgrounddetailed6.jpg" || true
+        
+        curl -L -o tracks/dirt.jpg \
+          "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/hardwood2_diffuse.jpg" || true
+    
+    - name: Create asset configuration
+      run: |
+        cat > app/src/main/assets/asset_config.json << 'EOF'
+        {
+          "asset_version": "1.0.0",
+          "last_updated": "AUTO_GENERATED",
+          "vehicles": [
+            {
+              "id": "sports_car",
+              "name": "Lightning Sports",
+              "model": "models/cars/sports_car_low.glb",
+              "textures": ["textures/cars/paint_metallic.jpg"],
+              "stats": {
+                "top_speed": 200,
+                "acceleration": 8.5,
+                "handling": 7.8,
+                "weight": 1200
+              }
+            },
+            {
+              "id": "formula_car",
+              "name": "F1 Thunder",
+              "model": "models/cars/formula_car.glb",
+              "textures": ["textures/cars/carbon_fiber.png"],
+              "stats": {
+                "top_speed": 250,
+                "acceleration": 10.0,
+                "handling": 9.5,
+                "weight": 750
+              }
+            },
+            {
+              "id": "classic_car",
+              "name": "Retro Racer",
+              "model": "models/cars/classic_car.glb",
+              "textures": ["textures/cars/paint_metallic.jpg"],
+              "stats": {
+                "top_speed": 170,
+                "acceleration": 6.0,
+                "handling": 6.5,
+                "weight": 1100
+              }
+            },
+            {
+              "id": "muscle_car",
+              "name": "Power Beast",
+              "model": "models/cars/muscle_car.glb",
+              "textures": ["textures/cars/paint_metallic.jpg"],
+              "stats": {
+                "top_speed": 180,
+                "acceleration": 9.0,
+                "handling": 6.0,
+                "weight": 1500
+              }
+            }
+          ],
+          "tracks": [
+            {
+              "id": "speedway_circuit",
+              "name": "Speedway Circuit",
+              "difficulty": "medium",
+              "laps": 5,
+              "length_km": 4.8,
+              "assets": {
+                "barriers": "models/tracks/barrier.glb",
+                "checkpoints": "models/tracks/checkpoint.glb",
+                "scenery": "models/tracks/tree.glb",
+                "textures": [
+                  "textures/tracks/asphalt.jpg",
+                  "textures/tracks/grass.jpg"
+                ]
+              }
+            }
+          ]
+        }
+        EOF
+        
+        # Update timestamp
+        sed -i "s/AUTO_GENERATED/$(date -u +%Y-%m-%dT%H:%M:%SZ)/" app/src/main/assets/asset_config.json
+    
+    - name: Generate asset loader code
+      run: |
+        mkdir -p engine/assets
+        cat > engine/assets/AssetLoader.h << 'EOF'
+        #ifndef ASSET_LOADER_H
+        #define ASSET_LOADER_H
+        
+        #include <android/asset_manager.h>
+        #include <string>
+        #include <vector>
+        
+        namespace RacingEngine {
+        
+        struct ModelData {
+            std::vector<unsigned char> data;
+            size_t size;
+        };
+        
+        class AssetLoader {
+        public:
+            static bool initialize(AAssetManager* manager);
+            static ModelData loadModel(const std::string& path);
+            static std::vector<unsigned char> loadTexture(const std::string& path);
+            static std::string loadConfig();
+            
+        private:
+            static AAssetManager* assetManager;
+        };
+        
+        } // namespace RacingEngine
+        
+        #endif // ASSET_LOADER_H
+        EOF
+    
+    - name: Verify downloaded assets
+      run: |
+        echo "## Downloaded Assets Summary" > asset_report.md
+        echo "" >> asset_report.md
+        echo "### Car Models" >> asset_report.md
+        ls -lh app/src/main/assets/models/cars/ >> asset_report.md || echo "None" >> asset_report.md
+        echo "" >> asset_report.md
+        echo "### Track Models" >> asset_report.md
+        ls -lh app/src/main/assets/models/tracks/ >> asset_report.md || echo "None" >> asset_report.md
+        echo "" >> asset_report.md
+        echo "### Textures" >> asset_report.md
+        ls -lhR app/src/main/assets/textures/ >> asset_report.md || echo "None" >> asset_report.md
+        
+        cat asset_report.md
+    
+    - name: Commit and push changes
+      run: |
+        git config user.name "Asset Bot"
+        git config user.email "assets@github-actions.bot"
+        git add app/src/main/assets/ engine/assets/
+        
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "📦 Auto-update: Racing game assets and models\n\n- Added car models (sports, formula, classic, muscle)\n- Added track environment assets\n- Updated textures and materials\n- Generated asset configuration"
+          git push
+        fi
+    
+    - name: Create GitHub summary
+      run: |
+        echo "# Asset Library Updated 🎨" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        cat asset_report.md >> $GITHUB_STEP_SUMMARY

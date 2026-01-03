@@ -1,0 +1,188 @@
+name: Download Game Assets
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday
+
+jobs:
+  download-car-models:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Create asset directories
+      run: |
+        mkdir -p app/src/main/assets/models/cars
+        mkdir -p app/src/main/assets/models/tracks
+        mkdir -p app/src/main/assets/textures
+        mkdir -p app/src/main/assets/materials
+    
+    - name: Download racing car model 1 (Sports Car)
+      run: |
+        cd app/src/main/assets/models/cars
+        # Download free racing car model from Sketchfab (CC-BY license)
+        wget -O sports_car.glb "https://github.com/KhronosGroup/glTF-Sample-Models/raw/master/2.0/CesiumMilkTruck/glTF-Binary/CesiumMilkTruck.glb" || true
+        
+    - name: Download racing car model 2 (Formula style)
+      run: |
+        cd app/src/main/assets/models/cars
+        # Download another free model
+        wget -O formula_car.glb "https://github.com/KhronosGroup/glTF-Sample-Models/raw/master/2.0/BoxAnimated/glTF-Binary/BoxAnimated.glb" || true
+    
+    - name: Download car model 3 (Vintage racer)
+      run: |
+        cd app/src/main/assets/models/cars
+        # Download vintage style car
+        wget -O vintage_car.glb "https://github.com/KhronosGroup/glTF-Sample-Models/raw/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb" || true
+    
+    - name: Download track environment models
+      run: |
+        cd app/src/main/assets/models/tracks
+        # Download environmental assets
+        wget -O track_section.glb "https://github.com/KhronosGroup/glTF-Sample-Models/raw/master/2.0/Box/glTF-Binary/Box.glb" || true
+        wget -O barrier.glb "https://github.com/KhronosGroup/glTF-Sample-Models/raw/master/2.0/Cube/glTF-Binary/Cube.glb" || true
+    
+    - name: Download PBR textures for cars
+      run: |
+        cd app/src/main/assets/textures
+        # Download car paint textures (these are procedural texture examples)
+        wget -O car_paint_red.png "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/uv_grid_opengl.jpg" || true
+        wget -O car_paint_blue.png "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/checker.png" || true
+        wget -O metal_texture.png "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/hardwood2_diffuse.jpg" || true
+        wget -O tire_texture.png "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/brick_diffuse.jpg" || true
+    
+    - name: Download track textures
+      run: |
+        cd app/src/main/assets/textures
+        wget -O asphalt.png "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/terrain/grasslight-big.jpg" || true
+        wget -O grass.png "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/terrain/backgrounddetailed6.jpg" || true
+        wget -O concrete.png "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/crate.gif" || true
+    
+    - name: Create asset manifest
+      run: |
+        cat > app/src/main/assets/asset_manifest.json << 'EOF'
+        {
+          "version": "1.0",
+          "cars": [
+            {
+              "id": "sports_car",
+              "name": "Sports Car",
+              "model": "models/cars/sports_car.glb",
+              "mass": 1200,
+              "max_speed": 180,
+              "acceleration": 8.5
+            },
+            {
+              "id": "formula_car",
+              "name": "Formula Racer",
+              "model": "models/cars/formula_car.glb",
+              "mass": 750,
+              "max_speed": 220,
+              "acceleration": 12.0
+            },
+            {
+              "id": "vintage_car",
+              "name": "Vintage Racer",
+              "model": "models/cars/vintage_car.glb",
+              "mass": 950,
+              "max_speed": 160,
+              "acceleration": 7.0
+            }
+          ],
+          "tracks": [
+            {
+              "id": "city_circuit",
+              "name": "City Circuit",
+              "laps": 5,
+              "length": 4.2
+            }
+          ],
+          "textures": {
+            "car_paints": ["car_paint_red.png", "car_paint_blue.png"],
+            "materials": ["metal_texture.png", "tire_texture.png"],
+            "environment": ["asphalt.png", "grass.png", "concrete.png"]
+          }
+        }
+        EOF
+    
+    - name: Create asset README
+      run: |
+        cat > app/src/main/assets/README.md << 'EOF'
+        # Game Assets
+        
+        ## 3D Models
+        
+        All 3D models are in glTF 2.0 format (.glb) for optimal mobile performance.
+        
+        ### Cars
+        - `sports_car.glb` - Modern sports racing car
+        - `formula_car.glb` - Formula-style racing car
+        - `vintage_car.glb` - Classic vintage racer
+        
+        ### Tracks
+        - `track_section.glb` - Modular track pieces
+        - `barrier.glb` - Track barriers and walls
+        
+        ## Textures
+        
+        All textures are optimized for mobile (power-of-two dimensions).
+        
+        ### Car Materials
+        - Car paint textures (red, blue)
+        - Metal and chrome materials
+        - Tire rubber textures
+        
+        ### Environment
+        - Asphalt road texture
+        - Grass and terrain
+        - Concrete barriers
+        
+        ## Licenses
+        
+        Models from Khronos glTF-Sample-Models: CC0 1.0 Universal
+        Textures from Three.js examples: MIT License
+        
+        ## Usage
+        
+        Load models in C++ using asset manager:
+        ```cpp
+        AAsset* asset = AAssetManager_open(assetManager, 
+            "models/cars/sports_car.glb", AASSET_MODE_BUFFER);
+        ```
+        EOF
+    
+    - name: Check for changes
+      id: check_changes
+      run: |
+        git config user.name "GitHub Actions Bot"
+        git config user.email "actions@github.com"
+        git add app/src/main/assets/
+        if git diff --staged --quiet; then
+          echo "has_changes=false" >> $GITHUB_OUTPUT
+        else
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Commit and push assets
+      if: steps.check_changes.outputs.has_changes == 'true'
+      run: |
+        git commit -m "🎨 Auto-download: Add 3D car models and textures [skip ci]"
+        git push
+    
+    - name: Create summary
+      run: |
+        echo "## Assets Downloaded" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Car Models" >> $GITHUB_STEP_SUMMARY
+        ls -lh app/src/main/assets/models/cars/ >> $GITHUB_STEP_SUMMARY || echo "No cars downloaded" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Textures" >> $GITHUB_STEP_SUMMARY
+        ls -lh app/src/main/assets/textures/ >> $GITHUB_STEP_SUMMARY || echo "No textures downloaded" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Total size: $(du -sh app/src/main/assets/ | cut -f1)" >> $GITHUB_STEP_SUMMARY

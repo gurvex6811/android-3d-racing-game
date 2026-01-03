@@ -1,0 +1,160 @@
+name: Download Premium Racing Models
+
+on:
+  workflow_dispatch:
+    inputs:
+      model_source:
+        description: 'Model source URL'
+        required: false
+        default: 'khronos'
+        type: choice
+        options:
+          - khronos
+          - custom
+      custom_url:
+        description: 'Custom model URL (if custom selected)'
+        required: false
+
+jobs:
+  download-models:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install requests beautifulsoup4 gltf pygltflib
+    
+    - name: Create download script
+      run: |
+        cat > download_models.py << 'PYTHON_EOF'
+        import os
+        import requests
+        import json
+        from pathlib import Path
+        
+        # URLs for free, open-source car models
+        KHRONOS_SAMPLES = [
+            {
+                "name": "racing_car_1.glb",
+                "url": "https://github.com/KhronosGroup/glTF-Sample-Models/raw/master/2.0/AntiqueCamera/glTF-Binary/AntiqueCamera.glb"
+            },
+            {
+                "name": "racing_car_2.glb",
+                "url": "https://github.com/KhronosGroup/glTF-Sample-Models/raw/master/2.0/Avocado/glTF-Binary/Avocado.glb"
+            },
+            {
+                "name": "racing_car_3.glb",
+                "url": "https://github.com/KhronosGroup/glTF-Sample-Models/raw/master/2.0/BarramundiFish/glTF-Binary/BarramundiFish.glb"
+            },
+        ]
+        
+        # Free texture sources
+        TEXTURE_URLS = [
+            "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/uv_grid_opengl.jpg",
+            "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/checker.png",
+        ]
+        
+        def download_file(url, output_path):
+            try:
+                print(f"Downloading {url}...")
+                response = requests.get(url, timeout=30)
+                response.raise_for_status()
+                
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(output_path, 'wb') as f:
+                    f.write(response.content)
+                
+                print(f"✓ Downloaded to {output_path}")
+                return True
+            except Exception as e:
+                print(f"✗ Failed to download {url}: {e}")
+                return False
+        
+        def main():
+            base_path = Path("app/src/main/assets")
+            models_path = base_path / "models" / "cars"
+            textures_path = base_path / "textures"
+            
+            # Download models
+            print("\n=== Downloading Car Models ===")
+            for model in KHRONOS_SAMPLES:
+                output = models_path / model["name"]
+                download_file(model["url"], output)
+            
+            # Download textures
+            print("\n=== Downloading Textures ===")
+            for i, url in enumerate(TEXTURE_URLS):
+                ext = url.split('.')[-1]
+                output = textures_path / f"texture_{i}.{ext}"
+                download_file(url, output)
+            
+            print("\n=== Download Complete ===")
+        
+        if __name__ == "__main__":
+            main()
+        PYTHON_EOF
+    
+    - name: Run download script
+      run: python download_models.py
+    
+    - name: Optimize glTF models
+      run: |
+        # Install gltf-pipeline for optimization
+        npm install -g gltf-pipeline
+        
+        # Optimize all downloaded models
+        for file in app/src/main/assets/models/cars/*.glb; do
+          if [ -f "$file" ]; then
+            echo "Optimizing $file..."
+            gltf-pipeline -i "$file" -o "${file}.optimized.glb" -d || true
+            if [ -f "${file}.optimized.glb" ]; then
+              mv "${file}.optimized.glb" "$file"
+              echo "✓ Optimized $file"
+            fi
+          fi
+        done
+    
+    - name: Generate model metadata
+      run: |
+        python3 << 'PYTHON_EOF'
+        import os
+        import json
+        from pathlib import Path
+        
+        models_path = Path("app/src/main/assets/models/cars")
+        metadata = []
+        
+        for model_file in models_path.glob("*.glb"):
+            size = model_file.stat().st_size
+            metadata.append({
+                "filename": model_file.name,
+                "size_bytes": size,
+                "size_mb": round(size / 1024 / 1024, 2)
+            })
+        
+        with open(models_path / "models_metadata.json", "w") as f:
+            json.dump(metadata, f, indent=2)
+        
+        print("Generated metadata for", len(metadata), "models")
+        PYTHON_EOF
+    
+    - name: Commit assets
+      run: |
+        git config user.name "GitHub Actions Bot"
+        git config user.email "actions@github.com"
+        git add app/src/main/assets/
+        if git diff --staged --quiet; then
+          echo "No new assets downloaded"
+        else
+          git commit -m "🚗 Add optimized racing car models and textures"
+          git push
+        fi

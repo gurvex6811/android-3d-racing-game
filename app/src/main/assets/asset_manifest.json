@@ -1,0 +1,42 @@
+{
+  "version": "1.0",
+  "cars": [
+    {
+      "id": "sports_car",
+      "name": "Sports Car",
+      "model": "models/cars/sports_car.glb",
+      "mass": 1200,
+      "max_speed": 180,
+      "acceleration": 8.5
+    },
+    {
+      "id": "formula_car",
+      "name": "Formula Racer",
+      "model": "models/cars/formula_car.glb",
+      "mass": 750,
+      "max_speed": 220,
+      "acceleration": 12.0
+    },
+    {
+      "id": "vintage_car",
+      "name": "Vintage Racer",
+      "model": "models/cars/vintage_car.glb",
+      "mass": 950,
+      "max_speed": 160,
+      "acceleration": 7.0
+    }
+  ],
+  "tracks": [
+    {
+      "id": "city_circuit",
+      "name": "City Circuit",
+      "laps": 5,
+      "length": 4.2
+    }
+  ],
+  "textures": {
+    "car_paints": ["car_paint_red.png", "car_paint_blue.png"],
+    "materials": ["metal_texture.png", "tire_texture.png"],
+    "environment": ["asphalt.png", "grass.png", "concrete.png"]
+  }
+}

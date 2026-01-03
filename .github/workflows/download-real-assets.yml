@@ -10,7 +10,7 @@ jobs:
       contents: write
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Clean corrupt files
       run: |
@@ -24,19 +24,17 @@ jobs:
         mkdir -p app/src/main/assets/textures/tracks
     
     - name: Setup Python for validation
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
     
     - name: Install validation tools
-      run: |
-        pip install requests
+      run: pip install requests
     
     - name: Download verified glTF models
       run: |
         cd app/src/main/assets/models/cars
         
-        # Download from Khronos glTF Sample Models (verified working URLs)
         echo "Downloading Car 1..."
         curl -L -f -o car1.glb \
           "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/BoxAnimated/glTF-Binary/BoxAnimated.glb" \
@@ -73,7 +71,6 @@ jobs:
       run: |
         cd app/src/main/assets/textures/cars
         
-        # Download actual image files
         curl -L -f -o metal.jpg \
           "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/uv_grid_opengl.jpg" \
           && echo "✓ Metal texture downloaded" || echo "✗ Metal texture failed"
@@ -96,7 +93,6 @@ jobs:
         from pathlib import Path
         
         def validate_glb(filepath):
-            """Check if file is a valid glTF binary (starts with glTF magic number)"""
             if not filepath.exists():
                 return False, "File does not exist"
             
@@ -106,7 +102,6 @@ jobs:
             if filepath.stat().st_size < 100:
                 return False, f"File too small ({filepath.stat().st_size} bytes)"
             
-            # Check for glTF magic number (0x46546C67 = "glTF")
             with open(filepath, 'rb') as f:
                 magic = f.read(4)
                 if magic == b'glTF':
@@ -117,7 +112,6 @@ jobs:
                     return False, f"Invalid magic number: {magic.hex()}"
         
         def validate_image(filepath):
-            """Check if file is a valid image"""
             if not filepath.exists():
                 return False, "File does not exist"
             
@@ -129,10 +123,8 @@ jobs:
             
             with open(filepath, 'rb') as f:
                 header = f.read(8)
-                # PNG signature
                 if header[:4] == b'\x89PNG':
                     return True, f"Valid PNG ({filepath.stat().st_size} bytes)"
-                # JPEG signature
                 elif header[:2] == b'\xff\xd8':
                     return True, f"Valid JPEG ({filepath.stat().st_size} bytes)"
                 elif header.startswith(b'<!DO') or header.startswith(b'<htm'):
@@ -152,7 +144,6 @@ jobs:
             if is_valid:
                 valid_cars += 1
             else:
-                # Delete corrupt files
                 glb_file.unlink()
                 print(f"  Deleted corrupt file: {glb_file.name}")
         
@@ -195,94 +186,6 @@ jobs:
         print("\n✓ Validation complete!")
         VALIDATE_SCRIPT
     
-    - name: Create proper asset manifest
-      run: |
-        cat > app/src/main/assets/ASSETS_INFO.md << 'EOF'
-        # Downloaded Assets
-        
-        ## Car Models (Placeholders from Khronos glTF Samples)
-        
-        These are placeholder models from the official Khronos glTF sample repository.
-        Replace with actual racing car models when available.
-        
-        - `car1.glb` - Animated box (placeholder)
-        - `car2.glb` - Cesium Milk Truck (placeholder vehicle)
-        - `car3.glb` - Duck (placeholder)
-        - `car4.glb` - Damaged Helmet (placeholder)
-        
-        ## Track Environment
-        
-        - `barrier.glb` - Box (use as track barrier)
-        - `tree.glb` - Brain stem model (placeholder scenery)
-        
-        ## Textures
-        
-        - `metal.jpg` - UV grid texture
-        - `paint.png` - Checker pattern
-        - `asphalt.jpg` - Grass terrain (placeholder)
-        
-        ## Getting Real Racing Car Models
-        
-        ### Free Sources:
-        1. **Sketchfab** (CC-BY license): https://sketchfab.com/search?q=racing+car&type=models
-        2. **TurboSquid Free**: https://www.turbosquid.com/Search/3D-Models/free/car
-        3. **Free3D**: https://free3d.com/3d-models/car
-        4. **Poly Haven**: https://polyhaven.com/models
-        
-        ### How to Add:
-        1. Download .glb or .gltf file
-        2. Place in `app/src/main/assets/models/cars/`
-        3. Update asset_config.json
-        4. Commit and push
-        
-        ## License
-        
-        Current models: CC0 (Public Domain) from Khronos Group
-        EOF
-    
-    - name: Update asset config with actual files
-      run: |
-        python3 << 'CONFIG_SCRIPT'
-        import json
-        import os
-        from pathlib import Path
-        
-        cars_dir = Path("app/src/main/assets/models/cars")
-        car_files = sorted([f.name for f in cars_dir.glob("*.glb")])
-        
-        config = {
-            "asset_version": "1.1.0",
-            "validated": True,
-            "vehicles": []
-        }
-        
-        car_names = [
-            {"id": "racer_1", "name": "Speed Demon", "speed": 180},
-            {"id": "racer_2", "name": "Turbo Beast", "speed": 200},
-            {"id": "racer_3", "name": "Street King", "speed": 160},
-            {"id": "racer_4", "name": "Night Rider", "speed": 190},
-        ]
-        
-        for i, car_file in enumerate(car_files):
-            if i < len(car_names):
-                info = car_names[i]
-                config["vehicles"].append({
-                    "id": info["id"],
-                    "name": info["name"],
-                    "model": f"models/cars/{car_file}",
-                    "stats": {
-                        "top_speed": info["speed"],
-                        "acceleration": 7.5 + i * 0.5,
-                        "handling": 7.0 + i * 0.3
-                    }
-                })
-        
-        with open("app/src/main/assets/asset_config.json", "w") as f:
-            json.dump(config, f, indent=2)
-        
-        print(f"Updated config with {len(config['vehicles'])} vehicles")
-        CONFIG_SCRIPT
-    
     - name: Commit validated assets
       run: |
         git config user.name "Asset Validator Bot"
@@ -316,11 +219,3 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Textures" >> $GITHUB_STEP_SUMMARY
         find app/src/main/assets/textures -type f 2>/dev/null | wc -l | awk '{print $1 " texture files"}' >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "## 📋 Next Steps" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "Current models are placeholders. To add real racing cars:" >> $GITHUB_STEP_SUMMARY
-        echo "1. Download car models from Sketchfab or TurboSquid" >> $GITHUB_STEP_SUMMARY
-        echo "2. Convert to .glb format if needed" >> $GITHUB_STEP_SUMMARY
-        echo "3. Place in assets/models/cars/" >> $GITHUB_STEP_SUMMARY
-        echo "4. Update asset_config.json" >> $GITHUB_STEP_SUMMARY

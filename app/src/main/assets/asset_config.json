@@ -1,45 +1,71 @@
 {
-  "asset_version": "1.1.0",
-  "validated": true,
+  "asset_version": "1.0.0",
+  "last_updated": "2026-01-05T03:45:33Z",
   "vehicles": [
     {
-      "id": "racer_1",
-      "name": "Speed Demon",
-      "model": "models/cars/car1.glb",
-      "stats": {
-        "top_speed": 180,
-        "acceleration": 7.5,
-        "handling": 7.0
-      }
-    },
-    {
-      "id": "racer_2",
-      "name": "Turbo Beast",
-      "model": "models/cars/car2.glb",
+      "id": "sports_car",
+      "name": "Lightning Sports",
+      "model": "models/cars/sports_car_low.glb",
+      "textures": ["textures/cars/paint_metallic.jpg"],
       "stats": {
         "top_speed": 200,
-        "acceleration": 8.0,
-        "handling": 7.3
-      }
-    },
-    {
-      "id": "racer_3",
-      "name": "Street King",
-      "model": "models/cars/car3.glb",
-      "stats": {
-        "top_speed": 160,
         "acceleration": 8.5,
-        "handling": 7.6
+        "handling": 7.8,
+        "weight": 1200
       }
     },
     {
-      "id": "racer_4",
-      "name": "Night Rider",
-      "model": "models/cars/car4.glb",
+      "id": "formula_car",
+      "name": "F1 Thunder",
+      "model": "models/cars/formula_car.glb",
+      "textures": ["textures/cars/carbon_fiber.png"],
       "stats": {
-        "top_speed": 190,
+        "top_speed": 250,
+        "acceleration": 10.0,
+        "handling": 9.5,
+        "weight": 750
+      }
+    },
+    {
+      "id": "classic_car",
+      "name": "Retro Racer",
+      "model": "models/cars/classic_car.glb",
+      "textures": ["textures/cars/paint_metallic.jpg"],
+      "stats": {
+        "top_speed": 170,
+        "acceleration": 6.0,
+        "handling": 6.5,
+        "weight": 1100
+      }
+    },
+    {
+      "id": "muscle_car",
+      "name": "Power Beast",
+      "model": "models/cars/muscle_car.glb",
+      "textures": ["textures/cars/paint_metallic.jpg"],
+      "stats": {
+        "top_speed": 180,
         "acceleration": 9.0,
-        "handling": 7.9
+        "handling": 6.0,
+        "weight": 1500
+      }
+    }
+  ],
+  "tracks": [
+    {
+      "id": "speedway_circuit",
+      "name": "Speedway Circuit",
+      "difficulty": "medium",
+      "laps": 5,
+      "length_km": 4.8,
+      "assets": {
+        "barriers": "models/tracks/barrier.glb",
+        "checkpoints": "models/tracks/checkpoint.glb",
+        "scenery": "models/tracks/tree.glb",
+        "textures": [
+          "textures/tracks/asphalt.jpg",
+          "textures/tracks/grass.jpg"
+        ]
       }
     }
   ]

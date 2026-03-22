@@ -2,23 +2,31 @@
 
 Custom 3D racing car game engine built with OpenGL ES for Android.
 
-## ✅ Assets Status
+## Assets Status
 
-**Car Models:** 4 validated glTF models (12KB - 3.7MB each)  
-**Track Models:** 2 environment models  
-**Textures:** Multiple car and track textures  
+**Car Models:** 4 validated glTF models (12KB - 3.7MB each)
+**Track Models:** 2 environment models
+**Textures:** Multiple car and track textures
 **Launcher Icons:** Adaptive icons with vector drawables
 
 All assets verified as proper glTF binary format.
 
 ## Features
 
-- 🏎️ Custom game engine written in C++
-- 🎨 OpenGL ES 3.0 rendering
-- ⚡ Physics-based vehicle dynamics
-- 🕹️ Touch controls
-- 🚗 3D car models and track rendering
-- 🎨 Racing-themed launcher icon
+- Custom game engine written in C++17
+- OpenGL ES 3.0 rendering with Phong lighting
+- Physics-based vehicle dynamics (acceleration, braking, steering)
+- Touch controls with split-screen input (left = steer, right = gas/brake)
+- 3D car model rendering via glTF 2.0 binary parser
+- Procedural oval track with barriers and collision detection
+- Checkpoint and lap tracking system
+- Game state machine (Menu, Racing, Paused, Finished)
+- HUD overlay (speed, lap counter, race timer)
+- Audio engine bridge (SoundPool-based)
+- Chase camera with smooth follow
+- Vector3, Quaternion, Matrix4 math library
+- Texture loading pipeline (PNG/JPEG)
+- Racing-themed launcher icon
 
 ## Project Structure
 
@@ -26,19 +34,21 @@ All assets verified as proper glTF binary format.
 android-3d-racing-game/
 ├── app/
 │   ├── src/main/
-│   │   ├── cpp/              # Native C++ engine (JNI bridge)
-│   │   ├── java/             # Java Android code
-│   │   ├── assets/           # Game assets (models, textures)
-│   │   └── res/              # Android resources (icons, strings)
+│   │   ├── cpp/                    # JNI bridge (Java ↔ C++)
+│   │   ├── java/com/racing/engine/ # Android Activity, Renderer, Audio
+│   │   ├── assets/                 # Game assets (glTF models, textures)
+│   │   └── res/                    # Android resources (icons, strings)
 │   └── build.gradle
-├── engine/               # C++ game engine
-│   ├── core/             # Engine core (initialization, loop)
-│   ├── graphics/         # OpenGL ES renderer, shaders
-│   ├── physics/          # Vehicle physics simulation
-│   └── math/             # Matrix, vector math
-├── shaders/              # GLSL vertex/fragment shaders
-├── CMakeLists.txt        # CMake build for native code
-└── .github/workflows/    # CI/CD automation
+├── engine/                         # C++ game engine
+│   ├── core/                       # Engine, Track, game state management
+│   ├── graphics/                   # Renderer, Shader, Mesh, Camera, TextureLoader
+│   ├── physics/                    # Vehicle dynamics
+│   ├── math/                       # Vector3, Quaternion, Matrix4
+│   ├── assets/                     # AssetLoader, glTFLoader
+│   └── audio/                      # AudioEngine (JNI bridge to SoundPool)
+├── shaders/                        # GLSL vertex/fragment shaders
+├── CMakeLists.txt                  # CMake build for native code
+└── .github/workflows/              # CI/CD automation
 ```
 
 ## Build Requirements
@@ -59,7 +69,7 @@ git clone https://github.com/subhobhai943/android-3d-racing-game.git
 cd android-3d-racing-game
 ```
 
-Open in Android Studio, wait for Gradle sync, then click **Run** (▶️).
+Open in Android Studio, wait for Gradle sync, then click **Run**.
 
 ### Command Line Build
 
@@ -74,9 +84,16 @@ Open in Android Studio, wait for Gradle sync, then click **Run** (▶️).
 ./gradlew test
 ```
 
+### Controls
+
+- **Left side of screen:** Steer (top = left, bottom = right)
+- **Right side top:** Accelerate
+- **Right side bottom:** Brake
+- **Tap screen:** Start race / Restart after finish
+
 ## Development Status
 
-🚧 **In Active Development** 🚧
+All core features are implemented and functional.
 
 - [x] Project structure and build system
 - [x] Gradle build configuration (AGP 8.2)
@@ -86,14 +103,14 @@ Open in Android Studio, wait for Gradle sync, then click **Run** (▶️).
 - [x] OpenGL ES 3.0 setup
 - [x] Physics engine foundation
 - [x] JNI bridge (Java ↔ C++)
-- [ ] Complete renderer implementation
-- [ ] Model loading (glTF parser)
-- [ ] Vehicle controls and input
-- [ ] Track/level system
-- [ ] Game loop and state management
-- [ ] UI and menus
-- [ ] Audio system
-- [ ] Multiplayer/leaderboards
+- [x] Complete renderer implementation
+- [x] Model loading (glTF parser)
+- [x] Vehicle controls and input
+- [x] Track/level system
+- [x] Game loop and state management
+- [x] UI and menus (HUD overlay)
+- [x] Audio system
+- [ ] Multiplayer/leaderboards (future)
 
 ## Automated Workflows
 
@@ -115,19 +132,31 @@ Run from [Actions tab](https://github.com/subhobhai943/android-3d-racing-game/ac
 
 ### Graphics
 - **API:** OpenGL ES 3.0
-- **Shading:** Phong lighting model
-- **Formats:** glTF 2.0 for models, PNG/JPEG for textures
+- **Shading:** Phong lighting model (ambient + diffuse + specular)
+- **Shader compilation:** Embedded GLSL ES 300 shaders
+- **Model format:** glTF 2.0 binary (glB) with accessor/bufferView parsing
+- **Textures:** PNG/JPEG loading with fallback solid colors
+- **Rendering:** VAO/VBO/EBO mesh pipeline, draw call batching
 
 ### Physics
-- Custom rigid body dynamics
-- Vehicle suspension simulation
-- Collision detection (AABB + mesh)
+- Velocity-based vehicle dynamics with steering rotation
+- Max speed enforcement (80 units)
+- Drag and ground friction simulation
+- AABB collision detection against track barriers
+
+### Game Loop
+- Fixed-timestep delta clamping (max 50ms)
+- State machine: MENU → RACING → PAUSED / FINISHED
+- Checkpoint-based lap counting (3 laps per race)
+
+### Camera
+- Third-person chase camera with configurable distance and height
+- Smooth interpolation (lerp) follow with adjustable smoothness
 
 ### Performance
 - Target: 60 FPS on high-end, 30 FPS on mid-range
-- LOD system for distant objects
-- Texture compression (ETC2)
-- Draw call batching
+- Delta time clamping to prevent physics explosion
+- Efficient GL state management
 
 ## License
 
@@ -149,4 +178,4 @@ Found a bug? [Open an issue](https://github.com/subhobhai943/android-3d-racing-g
 
 ---
 
-**Built with ❤️ using C++, OpenGL ES, and Android NDK**
+**Built with C++, OpenGL ES, and Android NDK**

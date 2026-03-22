@@ -1,32 +1,30 @@
 #ifndef VEHICLE_H
 #define VEHICLE_H
 
-namespace RacingEngine {
+#include "Vector3.h"
 
-struct Vector3 {
-    float x, y, z;
-    Vector3() : x(0), y(0), z(0) {}
-    Vector3(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
-};
+namespace RacingEngine {
 
 class Vehicle {
 public:
     Vehicle();
-    
+
     void update(float deltaTime);
     void applyAcceleration(float amount);
     void applyBrake(float amount);
     void applySteering(float angle);
-    
+
+    void setPosition(const Vector3& pos) { position = pos; }
     Vector3 getPosition() const { return position; }
     Vector3 getVelocity() const { return velocity; }
     float getSpeed() const;
-    
+    float getSteeringAngle() const { return steeringAngle; }
+
 private:
     Vector3 position;
     Vector3 velocity;
     Vector3 acceleration;
-    
+
     float steeringAngle;
     float speed;
     float maxSpeed;
@@ -34,8 +32,11 @@ private:
     float brakeForce;
     float mass;
     float drag;
-    
+    float friction;
+    float turnSpeed;
+
     void updatePhysics(float deltaTime);
+    void clampSpeed();
 };
 
 } // namespace RacingEngine
